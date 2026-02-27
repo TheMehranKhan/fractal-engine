@@ -1,0 +1,16 @@
+{
+  "name": "fractal-engine",
+  "version": "1.0.0",
+  "description": "Mandelbrot & Julia set renderer in TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": ["fractal", "mandelbrot", "julia", "math", "canvas"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
