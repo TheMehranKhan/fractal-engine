@@ -60,6 +60,9 @@ Calculate Mandelbrot iteration value for a point.
 ### `julia(z, c, config?)`
 Calculate Julia set iteration value.
 
+### `burningShip(c, config?)`
+Calculate Burning Ship fractal iteration value.
+
 ### `renderFractal(canvas, type, config?, juliaC?)`
 Render fractal directly to an HTML canvas.
 
@@ -69,8 +72,18 @@ Render fractal directly to an HTML canvas.
 {
   maxIterations: 256,    // Maximum iterations before escape
   escapeRadius: 4,      // Radius at which point is considered escaped
-  colorScheme: 'rainbow' | 'fire' | 'grayscale'
+  colorScheme: 'rainbow' | 'fire' | 'grayscale' | 'ocean' | 'sunset',
+  offsetX: -0.5,        // Center X coordinate
+  offsetY: 0,           // Center Y coordinate
+  zoom: 1               // Zoom level
 }
+```
+
+### Julia Set Presets
+
+```typescript
+import { JULIA_PRESETS } from 'fractal-engine';
+// [{ name: 'Dendrite', c: {x: -0.7, y: 0.27015}, ... }, ...]
 ```
 
 ## License

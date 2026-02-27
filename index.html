@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fractal Engine - Interactive Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a12;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      color: #ff64c8;
+      margin-bottom: 8px;
+      letter-spacing: 3px;
+    }
+    p { color: #666; font-size: 12px; margin-bottom: 20px; }
+    #container {
+      position: relative;
+      border: 2px solid rgba(255, 100, 200, 0.3);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(255, 100, 200, 0.1);
+    }
+    canvas { display: block; cursor: crosshair; }
+    #controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 800px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: rgba(20, 20, 30, 0.8);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 100, 200, 0.2);
+    }
+    label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    select, input[type="range"] {
+      background: #1a1a2e;
+      border: 1px solid #ff64c8;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 11px;
+    }
+    select { cursor: pointer; }
+    input[type="range"] { width: 100px; accent-color: #ff64c8; }
+    button {
+      background: linear-gradient(135deg, #5c1a3a, #401028);
+      border: 1px solid #ff64c8;
+      color: #ff64c8;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #8c2a5a, #602038);
+      box-shadow: 0 0 15px rgba(255, 100, 200, 0.3);
+    }
+    .info {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #444;
+    }
+    .presets {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .presets button {
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>FRACTAL ENGINE</h1>
+  <p>Interactive Mandelbrot & Julia Set Explorer</p>
+  
+  <div id="container">
+    <canvas id="canvas" width="700" height="500"></canvas>
+  </div>
+  
+  <div id="controls">
+    <div class="control-group">
+      <label>Type</label>
+      <select id="type">
+        <option value="mandelbrot">Mandelbrot</option>
+        <option value="julia">Julia Set</option>
+        <option value="burningShip">Burning Ship</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Color Scheme</label>
+      <select id="colorScheme">
+        <option value="rainbow">Rainbow</option>
+        <option value="fire">Fire</option>
+        <option value="ocean">Ocean</option>
+        <option value="sunset">Sunset</option>
+        <option value="grayscale">Grayscale</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <label>Iterations</label>
+      <input type="range" id="iterations" min="50" max="1000" step="50" value="256">
+      <span id="iterVal">256</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Zoom</label>
+      <input type="range" id="zoom" min="0.1" max="50" step="0.1" value="1">
+      <span id="zoomVal">1.0x</span>
+    </div>
+    
+    <div class="control-group">
+      <button id="resetBtn">Reset View</button>
+    </div>
+  </div>
+  
+  <div class="control-group" style="margin-top: 12px;">
+    <label>Julia Presets</label>
+    <div class="presets">
+      <button data-cx="-0.7" data-cy="0.27015">Dendrite</button>
+      <button data-cx="-0.8" data-cy="0.156">Dragon</button>
+      <button data-cx="0.285" data-cy="0.01">Swirl</button>
+      <button data-cx="-0.4" data-cy="0.6">Spiral</button>
+      <button data-cx="-0.835" data-cy="-0.2321">Nebula</button>
+      <button data-cx="-0.4" data-cy="0.4">Ship</button>
+    </div>
+  </div>
+  
+  <div class="info">Click to center • Scroll to zoom • Drag to pan</div>
+
+  <script type="module">
+import { renderFractal, JULIA_PRESETS } from './src/index.ts';
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let config = {
+  type: 'mandelbrot',
+  colorScheme: 'rainbow',
+  maxIterations: 256,
+  zoom: 1,
+  offsetX: -0.5,
+  offsetY: 0,
+  juliaC: { x: -0.7, y: 0.27015 }
+};
+
+let isDragging = false;
+let lastX = 0, lastY = 0;
+
+function render() {
+  renderFractal(
+    canvas,
+    config.type,
+    {
+      maxIterations: config.maxIterations,
+      colorScheme: config.colorScheme,
+      zoom: config.zoom,
+      offsetX: config.offsetX,
+      offsetY: config.offsetY
+    },
+    config.juliaC
+  );
+}
+
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  lastX = e.offsetX;
+  lastY = e.offsetY;
+});
+
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+
+canvas.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = (e.offsetX - lastX) / canvas.width * (3 / config.zoom);
+  const dy = (e.offsetY - lastY) / canvas.height * (3 / config.zoom);
+  config.offsetX -= dx;
+  config.offsetY += dy;
+  lastX = e.offsetX;
+  lastY = e.offsetY;
+  render();
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / canvas.width;
+  const y = (e.clientY - rect.top) / canvas.height;
+  
+  config.offsetX += (x - 0.5) * (3 / config.zoom);
+  config.offsetY += (y - 0.5) * (3 / canvas.width * canvas.height / canvas.width * 3 / config.zoom);
+  render();
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  config.zoom *= factor;
+  document.getElementById('zoom').value = config.zoom;
+  document.getElementById('zoomVal').textContent = config.zoom.toFixed(1) + 'x';
+  render();
+});
+
+document.getElementById('type').addEventListener('change', e => {
+  config.type = e.target.value;
+  render();
+});
+
+document.getElementById('colorScheme').addEventListener('change', e => {
+  config.colorScheme = e.target.value;
+  render();
+});
+
+document.getElementById('iterations').addEventListener('input', e => {
+  config.maxIterations = parseInt(e.target.value);
+  document.getElementById('iterVal').textContent = e.target.value;
+  render();
+});
+
+document.getElementById('zoom').addEventListener('input', e => {
+  config.zoom = parseFloat(e.target.value);
+  document.getElementById('zoomVal').textContent = config.zoom.toFixed(1) + 'x';
+  render();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  config.zoom = 1;
+  config.offsetX = -0.5;
+  config.offsetY = 0;
+  document.getElementById('zoom').value = 1;
+  document.getElementById('zoomVal').textContent = '1.0x';
+  render();
+});
+
+document.querySelectorAll('.presets button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    config.type = 'julia';
+    config.juliaC = {
+      x: parseFloat(btn.dataset.cx),
+      y: parseFloat(btn.dataset.cy)
+    };
+    document.getElementById('type').value = 'julia';
+    render();
+  });
+});
+
+render();
+  </script>
+</body>
+</html>
